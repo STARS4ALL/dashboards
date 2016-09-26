@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>dc.js - Right Axis Example</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="css/dc.css"/>
+</head>
+<body>
+
+<div class="container">
+<script type="text/javascript" src="js/header.js"></script>
+<div>
+    <strong>Magnitude of TESS</strong>
+</div>
+<div id="monthly-move-chart"></div>
+
+<script type="text/javascript" src="http://d3js.org/queue.v1.min.js"></script>
+<script type="text/javascript" src="js/d3.js"></script>
+<script type="text/javascript" src="js/crossfilter.js"></script>
+<script type="text/javascript" src="js/dc.js"></script>
+<script type="text/javascript">
+    //var moveChart = dc.compositeChart("#monthly-move-chart");
+    
+    var chart = dc.lineChart("#monthly-move-chart");
+    
+    
+    var q = queue()
+        .defer(d3.json, "http://api.stars4all.eu/api/v1/photometers/pruebas/observations?fields=mag,tstamp&begin=2016-06-30T19:00:00&end=2016-07-01T07:00:00&count=5000")
+        .awaitAll(function(error, results) {
+            if (error) throw error;
+            //console.log(results);
+            var dateFormat = d3.time.format("%Y-%m-%dT%H:%M:%S");
+            results[0].forEach(function (e) {
+                e.time = dateFormat.parse(e.tstamp);
+            });
+            /*results[1].forEach(function (e) {
+                e.time = dateFormat.parse(e.tstamp);
+            });*/
+            var ndx = crossfilter();
+            ndx.add(results[0]);
+            //ndx.add(results[1]);
+        
+
+            var time = ndx.dimension(function (d){
+                return d.time;
+            });
+
+            var magGroup = time.group().reduceSum(function (d){
+                return d.mag;
+            });
+   
+            chart
+               .width(768)
+               .height(480)
+               //.x(d3.time.scale().domain([new Date(2016, 5, 30), new Date(2016, 6, 10)]))
+               .x(d3.time.scale().domain([new Date('2016-06-30T19:00:00'), new Date('2016-07-1T07:00:00')]))
+               .y(d3.scale.linear().domain([8, 25]))
+               .interpolate('step-before')
+               .renderArea(true)
+               .brushOn(false)
+               .renderDataPoints(true)
+               .clipPadding(10)
+               .yAxisLabel("Magnitude")
+               .dimension(time)
+               .group(magGroup);
+        
+            dc.renderAll();
+        });
+   
+</script>
+</div>
+</body>
+</html>
