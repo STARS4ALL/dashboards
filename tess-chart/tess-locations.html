@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+    <title>Circles</title>
+    <style>
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #map {
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <script>
+      
+    var getJSON = function(url, callback) {
+      var xhr = new XMLHttpRequest();
+      xhr.open("get", url, true);
+      xhr.responseType = "json";
+      xhr.onload = function() {
+        var status = xhr.status;
+        if (status == 200) {
+          callback(null, xhr.response);
+        } else {
+          callback(status);
+        }
+      };
+    xhr.send();
+    };
+    /*
+    var currentDay = new Date();
+    var beginInterval = currentDay.getFullYear()+"-"+currentDay.getMonth()+"-"+(parseInt(currentDay.getDate())-1)+"T18:00:00Z";
+    var endInterval = currentDay.getFullYear()+"-"+currentDay.getMonth()+"-"+currentDay.getDate()+"T06:00:00Z";
+    console.log(beginInterval+" "+endInterval);
+    */
+
+// This example creates circles on the map, representing populations in North
+// America.
+
+
+
+var map = undefined;
+var markers = [];
+var markersInfo = [];
+var observationInfo = [];
+
+var currentDay = new Date();
+var previousDay = new Date();
+previousDay.setHours(previousDay.getHours()-3);
+    
+var beginDate = previousDay.toISOString();
+var endDate = currentDay.toISOString();
+
+
+setTimeout(updateStatus, 10000);
+
+function initMap(lat, lng, zoom) {
+  if (map != undefined) {
+        return map;
+  }
+  
+  return new google.maps.Map(document.getElementById('map'), {
+        zoom: zoom,
+        center: {lat: lat, lng: lng},
+        mapTypeId: google.maps.MapTypeId.TERRAIN
+  });
+}
+
+function updateStatus() {
+  console.log("Timer");
+  
+  currentDay = new Date();
+  previousDay = new Date();
+  previousDay.setHours(previousDay.getHours()-3);
+    
+  beginDate = previousDay.toISOString();
+  endDate = currentDay.toISOString();
+  
+  var infowindow = new google.maps.InfoWindow();
+  
+  for (var i in markers){
+    console.log("Marcador"+i);
+    getJSON("http://api.stars4all.eu/api/v1/photometers/"+i+"/observations?fields=mag,tstamp,tamb,name&begin="+beginDate+"&end="+endDate+"&count=5000",
+      function(err, observations) {
+                  if (err != null) {
+                    alert("Something went wrong: " + err);
+                  } else {
+                    console.log("Obs"+observations.length);
+                    if (observations.length == 0){
+                      markers[observations[0].name].setIcon('http://maps.google.com/mapfiles/ms/icons/red-dot.png');
+                      //infowindow.setContent("No data in the last 3 hours");
+                    } else{
+                     markers[observations[0].name].setIcon('http://maps.google.com/mapfiles/ms/icons/green-dot.png');
+                     markElement = markers[observations[0].name];
+                     google.maps.event.addListener(markElement,'click', (function() {
+                        return function() {
+                                    
+                         infowindow.setContent("<u>Last Observation</u><br>"+"<br>Id:"+observations[observations.length-1].name+"<br>Time:"+observations[observations.length-1].tstamp+"<br>Magnitude:"+observations[observations.length-1].mag+"<br>Temperature(Ambient):"+observations[observations.length-1].tamb);       
+                         infowindow.open(map, markers[observations[0].name]);                        
+                        
+                        }
+                     })());                          
+                                     
+                     //infowindow.setContent("<u>Last Observation</u><br>"+"<br>Id:"+observations[observations.length-1].name+"<br>Time:"+observations[observations.length-1].tstamp+"<br>Magnitude:"+observations[observations.length-1].mag+"<br>Temperature(Ambient):"+observations[observations.length-1].tamb); 
+                    }   
+                  }
+              });
+              
+  }
+}
+
+function mapCallback() {
+    map = initMap(40.4731, -3.6896, 7);
+    
+    getJSON("http://api.stars4all.eu/api/v1/photometers",
+    function(err, data) {
+      if (err != null) {
+        alert("Something went wrong: " + err);
+      } else {
+        //alert("Your query count: " + data[0].name);
+        var bounds = new google.maps.LatLngBounds();
+        var infowindow = new google.maps.InfoWindow();
+        
+        for (var count in data){
+          //console.log("Tess:"+data[count].latitude);
+          markersInfo[count] = data[count];
+          var position = {lat:Number(data[count].latitude),lng:Number(data[count].longitude)};
+
+          
+          var marker = new google.maps.Marker({
+            position: position,
+            map: map,
+            title: data[count].location
+          });
+          
+          //markers[count] = marker;
+          
+          tess_name = data[count].name;
+          markers[tess_name] = marker;
+          
+          bounds.extend(marker.position);
+          
+          /*
+          google.maps.event.addListener(marker, 'click', (function(marker, count) {
+            return function() {
+              
+              getJSON("http://api.stars4all.eu/api/v1/photometers/"+data[count].name+"/observations?fields=mag,tstamp,tamb,name&begin="+beginDate+"&end="+endDate+"&count=5000",
+                function(err, observations) {
+                  if (err != null) {
+                    alert("Something went wrong: " + err);
+                  } else {
+                    console.log("Obs"+observations.length);
+                    if (observations.length == 0){
+                      //marker.setIcon('http://maps.google.com/mapfiles/ms/icons/red-dot.png');
+                      infowindow.setContent("No data in the last 3 hours");
+                    } else{
+                     //marker.setIcon('http://maps.google.com/mapfiles/ms/icons/green-dot.png');
+                     infowindow.setContent("<u>Last Observation</u><br>"+"<br>Id:"+observations[observations.length-1].name+"<br>Time:"+observations[observations.length-1].tstamp+"<br>Magnitude:"+observations[observations.length-1].mag+"<br>Temperature(Ambient):"+observations[observations.length-1].tamb); 
+                    }   
+                  }
+              });
+              
+              infowindow.open(map, marker);
+            }
+          })(marker, count));               
+  */
+        }
+        map.fitBounds(bounds);
+      }
+    });
+}
+
+    </script>
+    <script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAoyg3qxPOvfAqXwUfdP0hY_4faF5qOt9Y&signed_in=true&callback=mapCallback"></script>
+  </body>
+</html>
