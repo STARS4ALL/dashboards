@@ -49,9 +49,7 @@
     var countElements = 0;
     
     $(document).ready(function() {
-        $.ajax({
-            url: "http://api.stars4all.eu/api/v1/photometers"
-        }).then(function(data) {
+        $.get("http://api.stars4all.eu/api/v1/photometers", function(data,status){
            for (var c in data){
                 console.log("Responses:"+data[c].name);
            }
