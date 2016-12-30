@@ -5,9 +5,10 @@
     <meta charset="UTF-8">
     <!--<link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">-->
     <link rel="stylesheet" type="text/css" href="css/dc.css"/>
+     <link rel="stylesheet" type="text/css" href="css/tess.css"/>
     <!-- New code -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
-    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
     <!-- New code -->
 </head>
@@ -26,6 +27,11 @@
   
         <div class="col-lg-8">
             <div class="container">
+                <center>
+                <div id="loading">
+                    <img id="loading-image" src="images/ajax-loader.gif" alt="Loading..." />
+                </div>
+                </center>
                 <div id="monthly-move-chart">
                     <center><h3 id="label_magnitude">Magnitude of the photometer star1</h3></center>
                 </div>
@@ -48,13 +54,6 @@
     var activePillName;
     var countElements = 0;
     
-    $(document).ready(function() {
-        $.get("http://api.stars4all.eu/api/v1/photometers", function(data,status){
-           for (var c in data){
-                console.log("Responses:"+data[c].name);
-           }
-        });
-    });
     
     var getJSON = function(url, callback) {
       var xhr = new XMLHttpRequest();
@@ -71,7 +70,7 @@
     xhr.send();
     };
     
-    getJSON("http://api.stars4all.eu/api/v1/photometers",
+    getJSON("http://api.stars4all.eu/photometers",
         function(err, data) {
             if (err != null) {
                 alert("Something went wrong: " + err);
@@ -83,10 +82,10 @@
                     if (count<10) {
                         if (data[count].name != undefined) {
                             if (count == 0) {
-                                $('ul.nav-pills').append("<li id=\"tess_"+data[count].name+"\" class=\"active\"><a href=\"#\" onClick=\"activePill('"+data[count].name+"')\">"+data[count].name+"</a></li>");
+                                $('ul.nav-pills').append("<li id=\"tess_"+data[count].name+"\" class=\"active\"><a href=\"#\" onClick=\"activePill('"+data[count].name+"')\"> Id:"+data[count].name+" Location:"+data[count].location+"</a></li>");
                                 activePillName = data[count].name;
                             }else{
-                                $('ul.nav-pills').append("<li id=\"tess_"+data[count].name+"\"><a href=\"#\" onClick=\"activePill('"+data[count].name+"')\">"+data[count].name+"</a></li>");
+                                $('ul.nav-pills').append("<li id=\"tess_"+data[count].name+"\"><a href=\"#\" onClick=\"activePill('"+data[count].name+"')\">Id:"+data[count].name+" Location:"+data[count].location+"</a></li>");
                             }    
                         }
                     } 
@@ -122,7 +121,7 @@
     
     
     var q = queue()
-        .defer(d3.json, "http://api.stars4all.eu/api/v1/photometers/"+tessName+"/observations?fields=mag,tstamp&begin="+beginDate+"&end="+endDate+"&count=5000")
+        .defer(d3.json, "http://api.stars4all.eu/photometers/"+tessName+"/observations?fields=mag,tstamp&begin="+beginDate+"&end="+endDate+"&count=5000&accuracy=6")
         .awaitAll(function(error, results) {
             if (error) throw error;
             //console.log(results);
@@ -166,13 +165,24 @@
                .brushOn(false)
                .renderDataPoints(true)
                .clipPadding(10)
+               .mouseZoomable(true)
                .yAxisLabel("Magnitude")
                .dimension(time)
                .group(magGroup);
         
+            hideLoading();
             dc.renderAll();
         });
         
+        
+    function showLoading(){
+        $('#loading').show();
+    }
+    
+    function hideLoading(){
+        $('#loading').hide();  
+    }
+    
     function activePill(name){
         
         var tess_id = "#tess_"+name;
@@ -182,12 +192,17 @@
         $(tess_id).addClass("active");
         activePillName = name;
         
+        showLoading();
+        
         $("#label_magnitude").text("Magnitude of the photometer "+name);
         
         var q = queue()
-            .defer(d3.json, "http://api.stars4all.eu/api/v1/photometers/"+name+"/observations?fields=mag,tstamp&begin="+beginDate+"&end="+endDate+"&count=5000")
+            .defer(d3.json, "http://api.stars4all.eu/photometers/"+name+"/observations?fields=mag,tstamp&begin="+beginDate+"&end="+endDate+"&count=120&accuracy=6")
             .awaitAll(function(error, results) {
-                if (error) throw error;
+                if (error){
+                    hideLoading();
+                    throw error;
+                }
                 var dateFormat = d3.time.format("%Y-%m-%dT%H:%M:%SZ");
                 results[0].forEach(function (e) {
                     e.time = dateFormat.parse(e.tstamp);
@@ -224,6 +239,7 @@
                    .dimension(time)
                    .group(magGroup);
             
+                hideLoading();
                 dc.renderAll();
             });
     }

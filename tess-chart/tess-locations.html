@@ -86,7 +86,7 @@ function updateStatus() {
   
   for (var i in markers){
     console.log("Marcador"+i);
-    getJSON("http://api.stars4all.eu/api/v1/photometers/"+i+"/observations?fields=mag,tstamp,tamb,name&begin="+beginDate+"&end="+endDate+"&count=5000",
+    getJSON("http://api.stars4all.eu/photometers/"+i+"/observations?fields=mag,tstamp,tamb,name&begin="+beginDate+"&end="+endDate+"&count=5000",
       function(err, observations) {
                   if (err != null) {
                     alert("Something went wrong: " + err);
@@ -118,7 +118,7 @@ function updateStatus() {
 function mapCallback() {
     map = initMap(40.4731, -3.6896, 7);
     
-    getJSON("http://api.stars4all.eu/api/v1/photometers",
+    getJSON("http://api.stars4all.eu/photometers",
     function(err, data) {
       if (err != null) {
         alert("Something went wrong: " + err);
