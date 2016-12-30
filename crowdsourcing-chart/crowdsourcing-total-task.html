@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>dc.js - Bar Chart with Extra Line Example</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="../css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="../css/dc.css"/>
+</head>
+<body>
+
+<div class="container">
+<script type="text/javascript" src="header.js"></script>
+
+<div id="test"></div>
+
+<script type="text/javascript" src="../js/d3.js"></script>
+<script type="text/javascript" src="../js/crossfilter.js"></script>
+<script type="text/javascript" src="../js/dc.js"></script>
+<script type="text/javascript">
+var chart = dc.barChart("#test");
+d3.json("darkskiess.json", function(error, data) {
+    
+    
+  var dateFormat = d3.time.format("%Y-%m-%dT%H:%M:%SZ");
+
+  data.forEach(function (e) {
+        e.time = dateFormat.parse(e.date);
+  });
+            
+  var ndx                 = crossfilter(data),
+      runDimension        = ndx.dimension(function(d) {return d.time;}),
+      tasks               = runDimension.group().reduceSum(function(d) {return d.tasks;});
+      
+  chart
+    .width(768)
+    .height(480)
+    .x(d3.scale.linear().domain([0,100]))
+    .brushOn(false)
+    .yAxisLabel("This is the Y Axis!")
+    .dimension(runDimension)
+    .group(speedSumGroup)
+    .renderLabel(true)
+    .on('renderlet', function(chart) {
+        chart.selectAll('rect').on("click", function(d) {
+            console.log("click!", d);
+        });
+        var left_y = 10, right_y = 70; // use real statistics here!
+        var extra_data = [{x: chart.x().range()[0], y: chart.y()(left_y)}, {x: chart.x().range()[1], y: chart.y()(right_y)}];
+        var line = d3.svg.line()
+            .x(function(d) { return d.x; })
+            .y(function(d) { return d.y; })
+            .interpolate('linear');
+        var chartBody = chart.select('g.chart-body');
+        var path = chartBody.selectAll('path.extra').data([extra_data]);
+        path.enter().append('path').attr({
+            class: 'extra',
+            stroke: 'red',
+            id: 'extra-line'
+        });
+        path.attr('d', line);
+        // and perhaps you'd like to label it?
+        var text = chartBody.selectAll('text.extra-label').data([0]);
+        text.enter().append('text')
+                .attr('text-anchor', 'middle')
+            .append('textPath').attr({
+                class: 'extra-label',
+                'xlink:href': '#extra-line',
+                startOffset: '50%'
+            })
+            .text('this is a label for the line');
+    });
+    chart.render();
+});
+</script>
+
+</div>
+</body>
+</html>
