@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>TESS sensors</title>
+    <meta charset="UTF-8">
+    <!--<link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">-->
+    <link rel="stylesheet" type="text/css" href="css/dc.css"/>
+    <link rel="stylesheet" type="text/css" href="css/tess.css"/>
+    <!-- New code -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <!-- New code -->
+</head>
+<body>
+
+
+<div class="row">
+
+        <div class="col-lg-4">
+            <h3>List of photometers</h3>
+
+                <ul class="nav nav-pills nav-stacked"></ul>
+                <ul class="pagination"></ul>
+
+        </div>
+
+        <div class="col-lg-8">
+            <div class="container">
+                <center>
+                <div id="loading">
+                    <img id="loading-image" src="images/ajax-loader.gif" alt="Loading..." />
+                </div>
+                </center>
+                <div id="monthly-move-chart">
+                    <center><h3 id="label_magnitude">Magnitude of the photometer star1</h3></center>
+                </div>
+            </div>
+        </div>
+
+</div>
+
+<script type="text/javascript" src="http://d3js.org/queue.v1.min.js"></script>
+<script type="text/javascript" src="js/d3.js"></script>
+<script type="text/javascript" src="js/crossfilter.js"></script>
+<script type="text/javascript" src="js/dc.js"></script>
+
+<script type="text/javascript">
+    //var moveChart = dc.compositeChart("#monthly-move-chart");
+   
+    var listTess = [];
+    var list = [];
+    
+    var activePillName;
+    
+    var getJSON = function(url, callback) {
+      var xhr = new XMLHttpRequest();
+      xhr.open("get", url, true);
+      xhr.responseType = "json";
+      xhr.onload = function() {
+        var status = xhr.status;
+        if (status == 200) {
+          callback(null, xhr.response);
+        } else {
+          callback(status);
+        }
+      };
+    xhr.send();
+    };
+    
+    getJSON("http://api.stars4all.eu/photometers",
+        function(err, data) {
+            if (err != null) {
+                alert("Something went wrong: " + err);
+            } else {
+                    
+                for (var count in data){
+                    listTess [count] = data[count];
+                    console.log("Matches:"+count+"->"+data[count].name);
+                    if (count<10) {
+                        if (data[count].name != undefined) {
+                            if (count == 0) {
+                                $('ul.nav-pills').append("<li id=\"tess_"+data[count].name+"\" class=\"active\"><a href=\"#\" onClick=\"activePill('"+data[count].name+"')\"> Id:"+data[count].name+" Location:"+data[count].location+"</a></li>");
+                                activePillName = data[count].name;
+                            }else{
+                                $('ul.nav-pills').append("<li id=\"tess_"+data[count].name+"\"><a href=\"#\" onClick=\"activePill('"+data[count].name+"')\">Id:"+data[count].name+" Location:"+data[count].location+"</a></li>");
+                            }    
+                        }
+                    } 
+                }
+                console.log("Total:"+data.length);
+                                for (i=0;i<data.length;i=i+10) {
+                    if (i==0) {
+                        $('ul.pagination').append("<li id=\"page"+(i/10+1)+"\" class=\"active\"><a href=\"#\" onClick=\"activePage(1)\">1</a></li>");
+                    } else {
+                        $('ul.pagination').append("<li id=\"page"+(i/10+1)+"\"><a href=\"#\" onClick=\"activePage("+(i/10+1)+")\">"+(i/10+1)+"</a></li>");
+                    }                 
+                }
+            }
+    });
+    
+    
+    var currentDay = new Date();
+    var previousDay = new Date();
+    previousDay.setDate(previousDay.getDate()-1);
+    
+    var beginDate = previousDay.toISOString();
+    var endDate = currentDay.toISOString();
+
+    
+    console.log("inicio:"+beginDate);
+    console.log("end:"+endDate);
+    
+    //console.log("Current Day: "+currentDay.toISOString());
+    
+    var chart = dc.lineChart("#monthly-move-chart");
+    
+    var tessName = "stars1";
+    
+    showLoading();
+    
+    var q = queue()
+        .defer(d3.json, "http://api.stars4all.eu/photometers/"+tessName+"/observations?fields=mag,tstamp&begin="+beginDate+"&end="+endDate+"&count=5000&accuracy=6")
+        .awaitAll(function(error, results) {
+            if (error){
+                hideLoading();
+                throw error;
+            }
+            //console.log(results);
+            var dateFormat = d3.time.format("%Y-%m-%dT%H:%M:%SZ");
+            results[0].forEach(function (e) {
+                e.time = dateFormat.parse(e.tstamp);
+            });
+            /*results[1].forEach(function (e) {
+                e.time = dateFormat.parse(e.tstamp);
+            });*/
+            var ndx = crossfilter();
+            ndx.add(results[0]);
+            //ndx.add(results[1]);
+        
+
+            var time = ndx.dimension(function (d){
+                return d.time;
+            });
+
+            var magGroup = time.group().reduceSum(function (d){
+                return d.mag;
+            });
+   
+            chart
+               .width(768)
+               .height(480)
+               .x(d3.time.scale().domain([new Date(beginDate), new Date(endDate)]))
+               .y(d3.scale.linear().domain([8, 25]))
+               .interpolate('step-before')
+               .renderArea(true)
+               .brushOn(false)
+               .renderDataPoints(true)
+               .clipPadding(10)
+               .yAxisLabel("Magnitude")
+               .dimension(time)
+               .group(magGroup);
+        
+            hideLoading();
+            dc.renderAll();
+        });
+        
+    function showLoading(){
+        $('#loading').show();
+    }
+    
+    function hideLoading(){
+        $('#loading').hide();  
+    }
+        
+    function activePill(name){
+        
+        var tess_id = "#tess_"+name;
+        var old_tess_id = "#tess_"+activePillName;
+        
+        $(old_tess_id).removeClass("active");
+        $(tess_id).addClass("active");
+        activePillName = name;
+        
+        showLoading();
+        
+        $("#label_magnitude").text("Magnitude of the photometer "+name);
+                var q = queue()
+            .defer(d3.json, "http://api.stars4all.eu/photometers/"+name+"/observations?fields=mag,tstamp&begin="+beginDate+"&end="+endDate+"&count=5000&accuracy=6")
+            .awaitAll(function(error, results) {
+                if (error) throw error;
+                var dateFormat = d3.time.format("%Y-%m-%dT%H:%M:%SZ");
+                results[0].forEach(function (e) {
+                    e.time = dateFormat.parse(e.tstamp);
+                });
+
+                var ndx = crossfilter();
+                ndx.add(results[0]);
+            
+                var time = ndx.dimension(function (d){
+                    return d.time;
+                });
+    
+                var magGroup = time.group().reduceSum(function (d){
+                    return d.mag;
+                });
+       
+                chart
+                   .width(768)
+                   .height(480)
+                   .x(d3.time.scale().domain([new Date(beginDate), new Date(endDate)]))
+                   .y(d3.scale.linear().domain([8, 25]))
+                   .interpolate('step-before')
+                   .renderArea(true)
+                   .brushOn(false)
+                   .renderDataPoints(true)
+                   .clipPadding(10)
+                   .yAxisLabel("Magnitude")
+                   .dimension(time)
+                   .group(magGroup);
+            
+                hideLoading();
+                dc.renderAll();
+            });
+    }
+    function activePage(page){
+        var item_begin = (page-1)*10;
+        $('ul.nav-pills').empty();
+        $('li').removeClass("active");
+        var page_begin = "#page"+page;
+        $(page_begin).addClass("active");
+        for (var item=item_begin; item < item_begin+10; item++) {
+            if (item<listTess.length) {
+                $('ul.nav-pills').append("<li id=\"tess_"+listTess[item].name+"\"><a href=\"#\" onClick=\"activePill('"+listTess[item].name+"')\">"+listTess[item].name+"</a></li>");
+            } else {
+                break;
+            }
+        }
+    }
+   
+</script>
+</body>
+</html>
