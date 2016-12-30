@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Heatmaps</title>
+    <style>
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #map {
+        height: 100%;
+      }
+#floating-panel {
+  position: absolute;
+  top: 10px;
+  left: 25%;
+  z-index: 5;
+  background-color: #fff;
+  padding: 5px;
+  border: 1px solid #999;
+  text-align: center;
+  font-family: 'Roboto','sans-serif';
+  line-height: 30px;
+  padding-left: 10px;
+}
+
+      #floating-panel {
+        background-color: #fff;
+        border: 1px solid #999;
+        left: 25%;
+        padding: 5px;
+        position: absolute;
+        top: 10px;
+        z-index: 5;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="floating-panel">
+      <button onclick="toggleHeatmap()">Toggle Heatmap</button>
+    </div>
+    <div id="map"></div>
+    <script>
+
+var map, heatmap;
+
+var tess_network=[];
+//var tess_per_name=[];
+var markers=[];
+var heatmap_points = [];
+
+var gradient = [
+    'rgba(0, 255, 255, 0)',
+    'rgba(0, 255, 255, 1)',
+    'rgba(0, 191, 255, 1)',
+    'rgba(0, 127, 255, 1)',
+    'rgba(0, 63, 255, 1)',
+    'rgba(0, 0, 255, 1)',
+    'rgba(0, 0, 223, 1)',
+    'rgba(0, 0, 191, 1)',
+    'rgba(0, 0, 159, 1)',
+    'rgba(0, 0, 127, 1)',
+    'rgba(63, 0, 91, 1)',
+    'rgba(127, 0, 63, 1)',
+    'rgba(191, 0, 31, 1)',
+    'rgba(255, 0, 0, 1)'
+  ];
+
+/* Make GET requests */
+var getJSON = function(url, callback) {
+      var xhr = new XMLHttpRequest();
+      xhr.open("get", url, true);
+      xhr.responseType = "json";
+      xhr.onload = function() {
+        var status = xhr.status;
+        if (status == 200) {
+          callback(null, xhr.response);
+        } else {
+          callback(status);
+        }
+      };
+    xhr.send();
+    };
+
+/* Draw the map */
+
+
+function initMap(lat, lng, zoom) {
+  if (map != undefined) {
+        return map;
+  }
+  
+  return new google.maps.Map(document.getElementById('map'), {
+        zoom: zoom,
+        center: {lat: lat, lng: lng},
+        mapTypeId: google.maps.MapTypeId.SATELLITE
+  });
+}
+
+// Adds a marker to the map.
+function addMarker(location, map) {
+  // Add the marker at the clicked location, and add the next-available label
+  // from the array of alphabetical characters.
+  var marker = new google.maps.Marker({
+    position: location,
+    animation: google.maps.Animation.DROP, 
+    map: map
+  });
+}
+
+function get_max(observations) {
+    //code
+    var max = 0;
+    for (var i = 0; i<observations.length;i++) {
+        
+        if (observations[i].mag > max) {
+            //console.log("Cambio:"+)
+            max = observations[i].mag;
+        }
+    }
+    
+    return max;
+}
+//Add heat point
+function addHeatMapPoint(name) {
+  
+  currentDay = new Date();
+  previousDay = new Date();
+  previousDay.setHours(previousDay.getHours()-previousDay.getHours());
+    
+  beginDate = previousDay.toISOString();
+  endDate = currentDay.toISOString();
+  
+  console.log("Taking data from "+name);
+    //code
+    getJSON("http://api.stars4all.eu/photometers/"+name+"/observations?fields=mag,tstamp,tamb,name&begin="+beginDate+"&end="+endDate+"&count=10&sort=-1&accuracy=2",
+      function(err, observations) {
+                  if (err != null) {
+                    alert("Something went wrong: " + err);
+                  } else {
+                    maximum = get_max(observations);
+                    weight_point = Math.trunc((25 -  maximum) * 2);
+                    console.log("Last Magnitude:"+weight_point);
+                    point_object = {location: new google.maps.LatLng(tess_network[name].latitude, tess_network[name].longitude), weight:weight_point}
+                    heatmap_points.push(point_object);
+                    //heatmap_points.push(new google.maps.LatLng(tess_network[name].latitude, tess_network[name].longitude));
+                  }
+      }
+    );
+}
+
+function updateStatus() {
+    //code
+    for (var photometer in tess_network) {
+        //Add marker
+        if (tess_network[photometer].latitude != undefined && tess_network[photometer].longitude != undefined) {
+            tess_location = {lat:tess_network[photometer].latitude,lng:tess_network[photometer].longitude};
+            addMarker(tess_location,map);
+            addHeatMapPoint(photometer);
+        }
+        
+    }
+    heatmap = new google.maps.visualization.HeatmapLayer({
+                        data: heatmap_points,
+                        gradient: gradient,
+                        radius:10,
+                        map:map
+                    });
+}
+
+function mapCallback(){
+    
+    map = initMap(40.4731, -3.6896, 4);
+    
+    getJSON("http://api.stars4all.eu/photometers",
+        function(err, data) {
+            var marker = [];
+                if (err != null) {
+                    alert("Something went wrong: " + err);
+                } else {
+                    for (var count in data){
+                        if (data[count].latitude != undefined && data[count].longitude != undefined && data[count] != undefined) {
+                            //tess_network.push(data[count]);
+                            tess_network[data[count].name] = data[count];
+                            //tess_network.push(new google.maps.LatLng(Number(data[count].latitude), Number(data[count].longitude)));
+                        }
+                        
+                        
+                    }
+                    updateStatus();
+                    /*
+                    
+                    heatmap = new google.maps.visualization.HeatmapLayer({
+                        data: tess_network,
+                        gradient: gradient,
+                        map:map
+                    });
+                    */
+                }
+        }
+    );
+}
+
+function toggleHeatmap() {
+  heatmap.setMap(heatmap.getMap() ? null : map);
+}
+
+/*
+function changeGradient() {
+  var gradient = [
+    'rgba(0, 255, 255, 0)',
+    'rgba(0, 255, 255, 1)',
+    'rgba(0, 191, 255, 1)',
+    'rgba(0, 127, 255, 1)',
+    'rgba(0, 63, 255, 1)',
+    'rgba(0, 0, 255, 1)',
+    'rgba(0, 0, 223, 1)',
+    'rgba(0, 0, 191, 1)',
+    'rgba(0, 0, 159, 1)',
+    'rgba(0, 0, 127, 1)',
+    'rgba(63, 0, 91, 1)',
+    'rgba(127, 0, 63, 1)',
+    'rgba(191, 0, 31, 1)',
+    'rgba(255, 0, 0, 1)'
+  ]
+  heatmap.set('gradient', heatmap.get('gradient') ? null : gradient);
+}
+*/
+function changeRadius() {
+  heatmap.set('radius', heatmap.get('radius') ? null : 20);
+}
+
+function changeOpacity() {
+  heatmap.set('opacity', heatmap.get('opacity') ? null : 0.2);
+}
+
+
+    </script>
+    <script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAoyg3qxPOvfAqXwUfdP0hY_4faF5qOt9Y&libraries=visualization&callback=mapCallback">
+    </script>
+  </body>
+</html>
