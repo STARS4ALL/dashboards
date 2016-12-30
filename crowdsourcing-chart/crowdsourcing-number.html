@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>dc.js - Number Display Example</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="css/dc.css"/>
+    <!-- New code -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <style>
+      #number-box {
+        width: 200px;
+        font-size: 64px;
+        text-align: center;
+        line-height: normal;
+      }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+<div id="number-box"></div>
+
+<script type="text/javascript" src="http://d3js.org/queue.v1.min.js"></script>
+<script type="text/javascript" src="js/d3.js"></script>
+<script type="text/javascript" src="js/crossfilter.js"></script>
+<script type="text/javascript" src="js/dc.js"></script>
+<script type="text/javascript">
+    
+var boxND    = dc.numberDisplay("#number-box");
+
+var getJSON = function(url, callback) {
+      var xhr = new XMLHttpRequest();
+      xhr.open("get", url, true);
+      xhr.responseType = "json";
+      xhr.onload = function() {
+        var status = xhr.status;
+        if (status == 200) {
+          callback(null, xhr.response);
+        } else {
+          callback(status);
+        }
+      };
+    xhr.send();
+    };
+    
+    var query = function () {
+        // This function is anonymous, is executed immediately and 
+        // the return value is assigned to QueryString!
+        var query_string = {};
+        var query = window.location.search.substring(1);
+        var vars = query.split("&");
+        for (var i=0;i<vars.length;i++) {
+          var pair = vars[i].split("=");
+              // If first entry with this name
+          if (typeof query_string[pair[0]] === "undefined") {
+            query_string[pair[0]] = decodeURIComponent(pair[1]);
+              // If second entry with this name
+          } else if (typeof query_string[pair[0]] === "string") {
+            var arr = [ query_string[pair[0]],decodeURIComponent(pair[1]) ];
+            query_string[pair[0]] = arr;
+              // If third or later entry with this name
+          } else {
+            query_string[pair[0]].push(decodeURIComponent(pair[1]));
+          }
+        } 
+        return query_string;
+      }();
+      
+    
+    if (query["size"]!=null){
+        $("#number-box").css("font-size",query["size"]+"px");
+    }
+    
+     if (query["color"]!=null){
+        $("#number-box").css("color","#"+query["color"]);
+    }
+    
+    var q = queue()
+        .defer(d3.json, "http://api.stars4all.eu/crowdsourcing")
+        .awaitAll(function(error, results) {
+            if (error){
+                hideLoading();
+                throw error;
+            }
+            var dateFormat = d3.time.format("%Y-%m-%dT");
+
+            results[0].forEach(function (e) {
+                e.time = dateFormat.parse(e.date);
+            });
+                          
+            var ndx = crossfilter(results[0]);
+            
+            var time = ndx.dimension(function (d){
+                return d.time;
+            });
+                
+                    
+            var tasks = time.group().reduceSum(function(d) {return d.tasks;});
+                    
+                
+                boxND
+                    .dimension(time)
+                    .group(tasks);
+                
+                dc.renderAll();
+        });
+
+/*
+d3.csv("result-ds.csv", function(error, data) {
+ 
+  var dateFormat = d3.time.format("%Y-%m-%dT%H:%M:%SZ");
+
+  data.forEach(function (e) {
+        e.time = dateFormat.parse(e.date);
+  });
+            
+  var ndx                 = crossfilter(data),
+      runDimension        = ndx.dimension(function(d) {return d.time;}),
+      tasks               = runDimension.group().reduceSum(function(d) {return d.tasks;});
+      
+  
+  boxND
+      .dimensio(time)
+      .group(tasks);
+  
+  dc.renderAll();
+  
+});
+*/
+</script>
+
+</div>
+</body>
+</html>
