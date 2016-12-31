@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>dc.js - Number Display Example</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="css/dc.css"/>
+    <!-- New code -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+</head>
+<body>
+
+<div class="container">
+
+<div id="bar"></div>
+
+<script type="text/javascript" src="http://d3js.org/queue.v1.min.js"></script>
+<script type="text/javascript" src="js/d3.js"></script>
+<script type="text/javascript" src="js/crossfilter.js"></script>
+<script type="text/javascript" src="js/dc.js"></script>
+<script type="text/javascript">
+    
+var composite    = dc.compositeChart("#bar");
+
+var getJSON = function(url, callback) {
+      var xhr = new XMLHttpRequest();
+      xhr.open("get", url, true);
+      xhr.responseType = "json";
+      xhr.onload = function() {
+        var status = xhr.status;
+        if (status == 200) {
+          callback(null, xhr.response);
+        } else {
+          callback(status);
+        }
+      };
+    xhr.send();
+    };
+    
+    var query = function () {
+        // This function is anonymous, is executed immediately and 
+        // the return value is assigned to QueryString!
+        var query_string = {};
+        var query = window.location.search.substring(1);
+        var vars = query.split("&");
+        for (var i=0;i<vars.length;i++) {
+          var pair = vars[i].split("=");
+              // If first entry with this name
+          if (typeof query_string[pair[0]] === "undefined") {
+            query_string[pair[0]] = decodeURIComponent(pair[1]);
+              // If second entry with this name
+          } else if (typeof query_string[pair[0]] === "string") {
+            var arr = [ query_string[pair[0]],decodeURIComponent(pair[1]) ];
+            query_string[pair[0]] = arr;
+              // If third or later entry with this name
+          } else {
+            query_string[pair[0]].push(decodeURIComponent(pair[1]));
+          }
+        } 
+        return query_string;
+      }();
+      
+    var width = 768;
+    var height = 480;
+    
+    
+    var parameter = "tasks";
+    
+    var api_query = "http://api.stars4all.eu/crowdsourcing"
+    
+    var beginDate = "2014-01-01";
+    var endDate="2016-12-31";
+    
+    if (query["width"]) {
+        width = query["width"];
+    }
+    
+    if (query["height"]) {
+        width = query["height"];
+    }
+    
+    if (query["parameter"]) {
+        parameter = query["parameter"];
+    }
+    
+    if (query["begin"]!=null) {
+        beginDate = query["begin"];
+        
+    }
+
+    if (query["end"]){
+        endDate = query["end"];
+    }
+    
+    if (query["parameter"]) {
+        parameter = query["parameter"];
+    }
+    
+    api_query=api_query+"?begin="+beginDate+"&end="+endDate;
+    
+    var q = queue()
+        .defer(d3.json, api_query+"&project=darkskies")
+        .defer(d3.json, api_query+"&project=lostatnight")
+        .defer(d3.json, api_query+"&project=nightcitiesiss")
+        .awaitAll(function(error, results) {
+            if (error){
+                throw error;
+            }
+            
+            var dateFormat = d3.time.format("%Y-%m-%d");
+            
+            results[0].forEach(function (e) {
+                e.time = dateFormat.parse(e.date);
+            });
+            results[1].forEach(function (e) {
+                e.time = dateFormat.parse(e.date);
+            });
+            results[2].forEach(function (e) {
+                e.time = dateFormat.parse(e.date);
+            });
+                          
+            var ndx = crossfilter();
+            
+             if (parameter == "users") {
+                ndx.add(results[0].map(function(d) {
+                    return {x: d.time, y2:0, y3:0, y1: d.users};
+                }));
+                ndx.add(results[1].map(function(d) {
+                    return {x: d.time, y1:0, y3:0, y2: d.users};
+                }));
+                ndx.add(results[2].map(function(d) {
+                    return {x: d.time, y1:0, y2:0, y3: d.users};
+                }));
+            } else {
+                ndx.add(results[0].map(function(d) {
+                    return {x: d.time, y2:0, y3:0, y1: d.tasks};
+                }));
+                ndx.add(results[1].map(function(d) {
+                    return {x: d.time, y1:0, y3:0, y2: d.tasks};
+                }));
+                ndx.add(results[2].map(function(d) {
+                    return {x: d.time, y1:0, y2:0, y3: d.tasks};
+                }));
+            }
+            
+            
+
+            
+            var dim  = ndx.dimension(dc.pluck('x')),
+                grp1 = dim.group().reduceSum(dc.pluck('y1')),
+                grp2 = dim.group().reduceSum(dc.pluck('y2'));
+                grp3 = dim.group().reduceSum(dc.pluck('y3'));
+        
+            
+                    
+            composite
+                .width(768)
+                .height(480)
+                .x(d3.time.scale().domain([new Date(beginDate), new Date(endDate)]))
+                .yAxisLabel("Number of tasks")
+                .legend(dc.legend().x(80).y(20).itemHeight(13).gap(5))
+                .renderHorizontalGridLines(true)
+                .compose([
+                    dc.lineChart(composite)
+                        .dimension(dim)
+                        .colors('red')
+                        .group(grp1, "darkskiess"),
+                    dc.lineChart(composite)
+                        .dimension(dim)
+                        .colors('blue')
+                        .group(grp2, "lostatnight"),
+                    dc.lineChart(composite)
+                        .dimension(dim)
+                        .colors('green')
+                        .group(grp3, "nightcities")
+                    ])
+                .brushOn(false)
+                .render();
+              
+           
+               
+        });
+
+
+</script>
+
+</div>
+</body>
+</html>
+
+
