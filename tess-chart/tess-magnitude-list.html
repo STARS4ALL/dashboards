@@ -89,7 +89,7 @@
                     } 
                 }
                 console.log("Total:"+data.length);
-                                for (i=0;i<data.length;i=i+10) {
+                for (i=0;i<data.length;i=i+10) {
                     if (i==0) {
                         $('ul.pagination').append("<li id=\"page"+(i/10+1)+"\" class=\"active\"><a href=\"#\" onClick=\"activePage(1)\">1</a></li>");
                     } else {
@@ -231,7 +231,7 @@
         $(page_begin).addClass("active");
         for (var item=item_begin; item < item_begin+10; item++) {
             if (item<listTess.length) {
-                $('ul.nav-pills').append("<li id=\"tess_"+listTess[item].name+"\"><a href=\"#\" onClick=\"activePill('"+listTess[item].name+"')\">"+listTess[item].name+"</a></li>");
+                $('ul.nav-pills').append("<li id=\"tess_"+listTess[item].name+"\"><a href=\"#\" onClick=\"activePill('"+listTess[item].name+"')\">"+listTess[item].name+" Location:"+listTess[item].location+"</a></li>");
             } else {
                 break;
             }
