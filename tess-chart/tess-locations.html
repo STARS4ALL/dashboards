@@ -58,7 +58,7 @@ var beginDate = previousDay.toISOString();
 var endDate = currentDay.toISOString();
 
 
-setTimeout(updateStatus, 10000);
+setTimeout(updateStatus, 5000);
 
 function initMap(lat, lng, zoom) {
   if (map != undefined) {
@@ -86,7 +86,7 @@ function updateStatus() {
   
   for (var i in markers){
     console.log("Marcador"+i);
-    getJSON("http://api.stars4all.eu/photometers/"+i+"/observations?fields=mag,tstamp,tamb,name&begin="+beginDate+"&end="+endDate+"&count=5000",
+    getJSON("http://api.stars4all.eu/photometers/"+i+"/observations/latest_values?fields=mag,tstamp,name&begin="+beginDate+"&end="+endDate+"&sort=-1&count=10",
       function(err, observations) {
                   if (err != null) {
                     alert("Something went wrong: " + err);
