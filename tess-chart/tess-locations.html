@@ -86,7 +86,7 @@ function updateStatus() {
   
   for (var i in markers){
     console.log("Marcador"+i);
-    getJSON("http://api.stars4all.eu/photometers/"+i+"/observations/latest_values?fields=mag,tstamp,name&begin="+beginDate+"&end="+endDate+"&sort=-1&count=10",
+    getJSON("http://api.stars4all.eu/photometers/"+i+"/observations/latest_values?fields=mag,tstamp,tamb,name&begin="+beginDate+"&end="+endDate+"&sort=-1&count=10",
       function(err, observations) {
                   if (err != null) {
                     alert("Something went wrong: " + err);
