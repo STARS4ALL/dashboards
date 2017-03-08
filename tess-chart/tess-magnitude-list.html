@@ -119,11 +119,11 @@
     
     showLoading();
     
-    var aux = "http://api.stars4all.eu/photometers/"+tessName+"/observations/latest_values?fields=mag,tstamp&begin="+beginDate+"&end="+endDate+"&count=5000&accuracy=6";
+    var aux = "http://api.stars4all.eu/photometers/"+tessName+"/observations/latest_values?fields=mag,tstamp&begin="+beginDate+"&end="+endDate+"&count=200&accuracy=6";
     console.log(aux);
     
     var q = queue()
-        .defer(d3.json, "http://api.stars4all.eu/photometers/"+tessName+"/observations/latest_values?fields=mag,tstamp&begin="+beginDate+"&end="+endDate+"&count=5000&accuracy=6")
+        .defer(d3.json, "http://api.stars4all.eu/photometers/"+tessName+"/observations/latest_values?fields=mag,tstamp&begin="+beginDate+"&end="+endDate+"&count=200&accuracy=6")
         .awaitAll(function(error, results) {
             if (error){
                 hideLoading();
@@ -189,7 +189,7 @@
         
         $("#label_magnitude").text("Magnitude of the photometer "+name);
                 var q = queue()
-            .defer(d3.json, "http://api.stars4all.eu/photometers/"+name+"/observations/latest_values?fields=mag,tstamp&begin="+beginDate+"&end="+endDate+"&count=5000&accuracy=6")
+            .defer(d3.json, "http://api.stars4all.eu/photometers/"+name+"/observations/latest_values?fields=mag,tstamp&begin="+beginDate+"&end="+endDate+"&count=200&accuracy=6")
             .awaitAll(function(error, results) {
                 if (error) throw error;
                 var dateFormat = d3.time.format("%Y-%m-%dT%H:%M:%SZ");
