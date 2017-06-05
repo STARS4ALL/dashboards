@@ -134,7 +134,7 @@
     showLoading();
     
     var q = queue()
-        .defer(d3.json, "http://api.stars4all.eu/photometers/"+tessName+"/observations?fields=mag,tstamp&begin="+beginDate+"&end="+endDate+"&count=5000&accuracy="+accuracy)
+        .defer(d3.json, "http://api.stars4all.eu/photometers/"+tessName+"/observations/latest_values?fields=mag,tstamp&begin="+beginDate+"&end="+endDate+"&count=200&accuracy="+accuracy)
         .awaitAll(function(error, results) {
             if (error){
                 hideLoading();
