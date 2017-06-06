@@ -50,6 +50,9 @@ var markers = [];
 var markersInfo = [];
 var observationInfo = [];
 
+var connection_icon = 'http://maps.google.com/mapfiles/ms/icons/green-dot.png';
+var no_connection_icon = 'http://maps.google.com/mapfiles/ms/icons/red-dot.png';
+
 var currentDay = new Date();
 var previousDay = new Date();
 previousDay.setHours(previousDay.getHours()-3);
@@ -58,7 +61,7 @@ var beginDate = previousDay.toISOString();
 var endDate = currentDay.toISOString();
 
 
-setTimeout(updateStatus, 10000);
+//setTimeout(updateStatus, 10000);
 
 function initMap(lat, lng, zoom) {
   if (map != undefined) {
@@ -72,18 +75,39 @@ function initMap(lat, lng, zoom) {
   });
 }
 
+function initStatus(){
+  updateStatus();
+  setInterval(updateStatus, 20000);
+}
+
 function updateStatus() {
   console.log("Timer");
   
   currentDay = new Date();
   previousDay = new Date();
-  previousDay.setHours(previousDay.getHours()-3);
-    
-  beginDate = previousDay.toISOString();
-  endDate = currentDay.toISOString();
+  previousDay.setHours(previousDay.getHours()-1);
   
   var infowindow = new google.maps.InfoWindow();
   
+  getJSON("http://api.stars4all.eu/reports/instant_values", function(err, observations){
+    if (err!=null) {
+      alert("Something went wrong: " + err);
+    } else {
+      for (var i in observations) {
+        observation_time = new Date(observations[i].tstamp);
+        if (observation_time > previousDay) {
+          if (markers[observations[i].name] != null) {
+            markers[observations[i].name].setIcon('http://maps.google.com/mapfiles/ms/icons/green-dot.png');
+          }
+        } else {
+          markers[observations[i].name].setIcon('http://maps.google.com/mapfiles/ms/icons/red-dot.png');
+        }
+        markers
+      }
+    }
+  });
+  
+  /*
   for (var i in markers){
     console.log("Marcador"+i);
     getJSON("http://api.stars4all.eu/photometers/"+i+"/observations/latest_values?fields=mag,tstamp,tamb,name&begin="+beginDate+"&end="+endDate+"&sort=-1&count=10",
@@ -113,6 +137,7 @@ function updateStatus() {
               });
               
   }
+  */
 }
 
 function mapCallback() {
@@ -136,7 +161,8 @@ function mapCallback() {
           var marker = new google.maps.Marker({
             position: position,
             map: map,
-            title: data[count].location
+            title: data[count].location,
+            icon: no_connection_icon
           });
           
           //markers[count] = marker;
@@ -145,6 +171,7 @@ function mapCallback() {
           markers[tess_name] = marker;
           
           bounds.extend(marker.position);
+
           
           /*
           google.maps.event.addListener(marker, 'click', (function(marker, count) {
@@ -171,6 +198,7 @@ function mapCallback() {
           })(marker, count));               
   */
         }
+        setTimeout(initStatus, 2000);
         //map.fitBounds(bounds);
       }
     });
