@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>TESS sensors</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="css/dc.css"/>
+    <link rel="stylesheet" type="text/css" href="css/tess.css"/>
+    <!-- New code -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <!-- New code -->
+    <style>
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #map {
+        height: 100%;
+      }
+    </style>
+
+  
+</head>
+<body>
+
+
+
+        <div id="map">
+            
+        </div>
+
+
+    <script>
+      
+        var getJSON = function(url, callback) {
+          var xhr = new XMLHttpRequest();
+          xhr.open("get", url, true);
+          xhr.responseType = "json";
+          xhr.onload = function() {
+            var status = xhr.status;
+            if (status == 200) {
+              callback(null, xhr.response);
+            } else {
+              callback(status);
+            }
+          };
+        xhr.send();
+        };
+        
+        var map = undefined;
+        
+    var markers = [];
+    var markersInfo = [];
+    var observationInfo = [];
+    
+    var connection_icon = 'http://maps.google.com/mapfiles/ms/icons/green-dot.png';
+    var no_connection_icon = 'http://maps.google.com/mapfiles/ms/icons/red-dot.png';
+    
+    var currentDay = new Date();
+    var previousDay = new Date();
+    previousDay.setHours(previousDay.getHours()-3);
+        
+    var beginDate = previousDay.toISOString();
+    var endDate = currentDay.toISOString();
+    
+    
+    function initMap(lat, lng, zoom) {
+      if (map != undefined) {
+            return map;
+      }
+      
+      return new google.maps.Map(document.getElementById('map'), {
+            zoom: zoom,
+            center: {lat: lat, lng: lng},
+            mapTypeId: google.maps.MapTypeId.TERRAIN
+      });
+    }
+    
+    function initStatus(){
+      updateStatus();
+      setInterval(updateStatus, 20000);
+    }
+    
+    function updateStatus() {
+      console.log("Timer");
+      
+      currentDay = new Date();
+      previousDay = new Date();
+      previousDay.setHours(previousDay.getHours()-1);
+      
+      var infowindow = new google.maps.InfoWindow();
+      
+      getJSON("http://api.stars4all.eu/reports/instant_values", function(err, observations){
+        if (err!=null) {
+          alert("Something went wrong: " + err);
+        } else {
+          for (var i in observations) {
+            observation_time = new Date(observations[i].tstamp);
+            if (observation_time > previousDay) {
+              if (markers[observations[i].name] != null) {
+                markers[observations[i].name].setIcon('http://maps.google.com/mapfiles/ms/icons/green-dot.png');
+              }
+            } else {
+              markers[observations[i].name].setIcon('http://maps.google.com/mapfiles/ms/icons/red-dot.png');
+            }
+            markers
+          }
+        }
+      });
+    } 
+    
+    function mapCallback() {
+        
+        map = initMap(40.4731, -3.6896, 3);
+        
+        getJSON("http://api.stars4all.eu/photometers",
+        function(err, data) {
+          if (err != null) {
+            alert("Something went wrong: " + err);
+          } else {
+            //alert("Your query count: " + data[0].name);
+            var bounds = new google.maps.LatLngBounds();
+            var infowindow = new google.maps.InfoWindow();
+            
+            for (var count in data){
+              //console.log("Tess:"+data[count].latitude);
+              markersInfo[count] = data[count];
+              var position = {lat:Number(data[count].latitude),lng:Number(data[count].longitude)};
+    
+              
+              var marker = new google.maps.Marker({
+                position: position,
+                map: map,
+                title: data[count].location,
+                icon: no_connection_icon
+              });
+              
+              
+              
+              tess_name = data[count].name;
+              
+              attachPhotometerName(marker, tess_name);
+              
+              markers[tess_name] = marker;
+          
+              bounds.extend(marker.position);
+              
+            
+            
+            }
+            setTimeout(initStatus, 2000);
+            //map.fitBounds(bounds);
+          }
+        });
+    }
+    
+    function attachPhotometerName(marker, name) {
+        //code
+        var infowindow = new google.maps.InfoWindow({
+           content: "<div style=\"width:768px; height:580px;\"><iframe src=\"http://dashboards.stars4all.eu/tess-chart/tess-magnitude.html?name="+name+"&width=460&height=768\" width=\"100%\" height=\"100%\"></iframe></div>"
+         });
+         marker.addListener('click', (function() {
+                        return function() {
+                           marker.get('map').setZoom(6);
+                           marker.get('map').setCenter(marker.getPosition());
+                           infowindow.open(marker.get('map'), marker);
+                           console.log(marker);                   
+                        
+                        }
+              })());
+    }
+
+    </script>
+<script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAoyg3qxPOvfAqXwUfdP0hY_4faF5qOt9Y&signed_in=true&callback=mapCallback"></script>
+
+
+</body>
+</html>
