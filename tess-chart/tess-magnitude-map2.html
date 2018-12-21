@@ -112,10 +112,10 @@
     } 
     
     function mapCallback() {
-        
-        map = initMap(40.4731, -3.6896, 3);
-        
-        getJSON("http://api.stars4all.eu/photometers",
+
+      map = initMap(40.4731, -3.6896, 3);
+
+      getJSON("http://api.stars4all.eu/photometers",
         function(err, data) {
           if (err != null) {
             alert("Something went wrong: " + err);
@@ -123,32 +123,46 @@
             //alert("Your query count: " + data[0].name);
             var bounds = new google.maps.LatLngBounds();
             var infowindow = new google.maps.InfoWindow();
-            
-            for (var count in data){
+
+            for (var count in data) {
               //console.log("Tess:"+data[count].latitude);
               markersInfo[count] = data[count];
-              var position = {lat:Number(data[count].latitude),lng:Number(data[count].longitude)};
-    
-              
+
+              var lat = undefined;
+              var lon = undefined;
+
+              var title = undefined;
+
+              if ("info_location" in data[count] && data[count]["info_location"]) {
+                lat = Number(data[count]["info_location"]["latitude"]);
+                lon = Number(data[count]["info_location"]["longitude"]);
+                title = data[count]["info_location"]["place"];
+              } else {
+                lat = Number(data[count].latitude);
+                lon = Number(data[count].longitude);
+                title = data[count].location;
+              }
+
+              var position = {
+                lat: lat,
+                lng: lon
+              };
+
               var marker = new google.maps.Marker({
                 position: position,
                 map: map,
-                title: data[count].location,
+                title: title,
                 icon: no_connection_icon
               });
-              
-              
-              
+
               tess_name = data[count].name;
-              
+
               attachPhotometerName(marker, tess_name);
-              
+
               markers[tess_name] = marker;
-          
+
               bounds.extend(marker.position);
-              
-            
-            
+
             }
             setTimeout(initStatus, 2000);
             //map.fitBounds(bounds);
@@ -159,7 +173,7 @@
     function attachPhotometerName(marker, name) {
         //code
         var infowindow = new google.maps.InfoWindow({
-           content: "<div style=\"width:768px; height:580px;\"><iframe src=\"http://dashboards.stars4all.eu/tess-chart/tess-magnitude.html?name="+name+"&width=460&height=768\" width=\"100%\" height=\"100%\"></iframe></div>"
+           content: "<div style=\"width:768px; height:580px;\"><iframe src=\"http://dashboards.stars4all.eu/tess-chart/tess-magnitude.html?name="+name+"&width=460&height=768&accuracy=6\" width=\"100%\" height=\"100%\"></iframe></div>"
          });
          marker.addListener('click', (function() {
                         return function() {

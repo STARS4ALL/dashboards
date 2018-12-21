@@ -225,11 +225,11 @@
     
     showLoading();
     
-    var aux = "http://api.stars4all.eu/photometers/"+tessName+"/observations/latest_values?fields=mag,tstamp&begin="+beginDate+"&end="+endDate+"&count=200&accuracy=6";
+    var aux = "http://api.stars4all.eu/photometers/"+tessName+"/observations/latest_values?fields=mag,tstamp&begin="+beginDate+"&end="+endDate+"&accuracy=6";
     console.log(aux);
     
     var q = queue()
-        .defer(d3.json, "http://api.stars4all.eu/photometers/"+tessName+"/observations/latest_values?fields=mag,tstamp&begin="+beginDate+"&end="+endDate+"&count=200&accuracy=6")
+        .defer(d3.json, "http://api.stars4all.eu/photometers/"+tessName+"/observations/latest_values?fields=mag,tstamp&begin="+beginDate+"&end="+endDate+"&accuracy=6")
         .awaitAll(function(error, results) {
             if (error){
                 hideLoading();
@@ -249,18 +249,23 @@
         
 
             var time = ndx.dimension(function (d){
-                return d.time;
+
+                    return d.time;
+                      
             });
+            
 
             var magGroup = time.group().reduceSum(function (d){
+                console.log(d.mag);
                 return d.mag;
             });
-   
+            
+            //.x(d3.time.scale().domain([new Date(beginDate), new Date(endDate)]))
             chart
                .width(768)
                .height(480)
                .x(d3.time.scale().domain([new Date(beginDate), new Date(endDate)]))
-               .y(d3.scale.linear().domain([8, 25]))
+               .y(d3.scale.linear().domain([13, 24]))
                .interpolate('step-before')
                .renderArea(true)
                .brushOn(false)
@@ -295,7 +300,7 @@
         
         $("#label_magnitude").text("Magnitude of the photometer "+name);
         var q = queue()
-            .defer(d3.json, "http://api.stars4all.eu/photometers/"+name+"/observations/latest_values?fields=mag,tstamp&begin="+beginDate+"&end="+endDate+"&count=200&accuracy=6")
+            .defer(d3.json, "http://api.stars4all.eu/photometers/"+name+"/observations/latest_values?fields=mag,tstamp&begin="+beginDate+"&end="+endDate+"&accuracy=6")
             .awaitAll(function(error, results) {
                 if (error) throw error;
                 var dateFormat = d3.time.format("%Y-%m-%dT%H:%M:%SZ");
@@ -318,7 +323,7 @@
                    .width(768)
                    .height(480)
                    .x(d3.time.scale().domain([new Date(beginDate), new Date(endDate)]))
-                   .y(d3.scale.linear().domain([8, 25]))
+                   .y(d3.scale.linear().domain([13, 24]))
                    .interpolate('step-before')
                    .renderArea(true)
                    .brushOn(false)

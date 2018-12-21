@@ -134,7 +134,7 @@
     showLoading();
     
     var q = queue()
-        .defer(d3.json, "http://api.stars4all.eu/photometers/"+tessName+"/observations/latest_values?fields=mag,tstamp&begin="+beginDate+"&end="+endDate+"&count=200&accuracy="+accuracy)
+        .defer(d3.json, "http://api.stars4all.eu/photometers/"+tessName+"/observations/latest_values?fields=mag,tstamp&begin="+beginDate+"&end="+endDate+"&accuracy="+accuracy)
         .awaitAll(function(error, results) {
             if (error){
                 hideLoading();
@@ -165,7 +165,7 @@
                .width(width)
                .height(height)
                .x(d3.time.scale().domain([new Date(beginDate), new Date(endDate)]))
-               .y(d3.scale.linear().domain([8, 25]))
+               .y(d3.scale.linear().domain([16, 24]))
                .interpolate('step-before')
                .renderArea(true)
                .brushOn(false)
