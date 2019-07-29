@@ -154,55 +154,46 @@ function mapCallback() {
         
         for (var count in data){
           //console.log("Tess:"+data[count].latitude);
-          markersInfo[count] = data[count];
-          var position = {lat:Number(data[count].latitude),lng:Number(data[count].longitude)};
+              markersInfo[count] = data[count];
 
-          
-          var marker = new google.maps.Marker({
-            position: position,
-            map: map,
-            title: data[count].location,
-            icon: no_connection_icon
-          });
-          
-          //markers[count] = marker;
-          
-          tess_name = data[count].name;
-          markers[tess_name] = marker;
-          
-          bounds.extend(marker.position);
+              var lat = undefined;
+              var lon = undefined;
 
-          
-          /*
-          google.maps.event.addListener(marker, 'click', (function(marker, count) {
-            return function() {
-              
-              getJSON("http://api.stars4all.eu/api/v1/photometers/"+data[count].name+"/observations?fields=mag,tstamp,tamb,name&begin="+beginDate+"&end="+endDate+"&count=5000",
-                function(err, observations) {
-                  if (err != null) {
-                    alert("Something went wrong: " + err);
-                  } else {
-                    console.log("Obs"+observations.length);
-                    if (observations.length == 0){
-                      //marker.setIcon('http://maps.google.com/mapfiles/ms/icons/red-dot.png');
-                      infowindow.setContent("No data in the last 3 hours");
-                    } else{
-                     //marker.setIcon('http://maps.google.com/mapfiles/ms/icons/green-dot.png');
-                     infowindow.setContent("<u>Last Observation</u><br>"+"<br>Id:"+observations[observations.length-1].name+"<br>Time:"+observations[observations.length-1].tstamp+"<br>Magnitude:"+observations[observations.length-1].mag+"<br>Temperature(Ambient):"+observations[observations.length-1].tamb); 
-                    }   
-                  }
+              var title = undefined;
+
+              if ("info_location" in data[count] && data[count]["info_location"]) {
+                lat = Number(data[count]["info_location"]["latitude"]);
+                lon = Number(data[count]["info_location"]["longitude"]);
+                title = data[count]["info_location"]["place"];
+              } else {
+                lat = Number(data[count].latitude);
+                lon = Number(data[count].longitude);
+                title = data[count].location;
+              }
+
+              var position = {
+                lat: lat,
+                lng: lon
+              };
+
+              var marker = new google.maps.Marker({
+                position: position,
+                map: map,
+                title: title,
+                icon: no_connection_icon
               });
-              
-              infowindow.open(map, marker);
-            }
-          })(marker, count));               
-  */
+
+              tess_name = data[count].name;
+
+              markers[tess_name] = marker;
+
+              bounds.extend(marker.position);
         }
         setTimeout(initStatus, 2000);
         //map.fitBounds(bounds);
       }
     });
-}
+  }
 
     </script>
     <script async defer
